@@ -14,7 +14,9 @@
 Simulador de mercado com moedas memes, blue chips e Web3 — preços que sobem e caem,
 estratégias de trading automático e um veredito honesto: **LUCRO** ou **PERDA**.
 
-`zero dependências` · `Node 16+` · `100% terminal`
+**Novo na v1.1:** 🔥 ordens **REAIS** a mercado via **Binance**, **Bybit** e **OKX**.
+
+`zero dependências` · `Node 18+` · `100% terminal`
 
 </div>
 

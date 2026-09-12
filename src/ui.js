@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { renderizarLetras } from './letras.js';
+import { VERSAO } from './versao.js';
 
 const COR = process.stdout.isTTY && !process.env.NO_COLOR;
 
@@ -111,7 +112,8 @@ export function banner() {
     '',
     ...linhas,
     '',
-    cinza(`        🧠  CoinMind · o robô de cripto do seu terminal  ·  memes, blue chips e Web3  ·  v1.0.0`),
+    cinza(`        🧠  CoinMind v${VERSAO} · o robô de cripto do terminal  ·  memes, blue chips e Web3`),
+    cinza(`            simulação grátis  ·  ordens REAIS via Binance, Bybit e OKX  ·  zero dependências`),
     '',
   ].join('\n');
 }

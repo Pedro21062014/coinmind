@@ -15,6 +15,8 @@ import {
   pnlNaoRealizado, pnlRealizado, caminhoCarteira,
 } from './carteira.js';
 import { ESTRATEGIAS, decidir, executar, configEstrategia } from './bot.js';
+import { comandoCorretoras, comandoReal } from './comandos-real.js';
+import { VERSAO } from './versao.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,7 +55,7 @@ export function ajuda() {
   console.log(banner());
   console.log(cianoNegrito('USO'));
   console.log(`  ${negrito('coinmind <comando> [opções]')}\n`);
-  console.log(cianoNegrito('COMANDOS'));
+  console.log(cianoNegrito('SIMULAÇÃO (paper trading)'));
   const cmds = [
     ['mercado', 'cotações ao vivo do mercado simulado (opcional: --ciclos N --intervalo ms)'],
     ['comprar <MOEDA> <US$>', 'compra uma moeda com dólares fictícios · ex: comprar PEPE 100'],
@@ -64,9 +66,23 @@ export function ajuda() {
     ['letras <TEXTO>', 'gera letras gigantes estilo ANSI Shadow · ex: letras HODL'],
     ['historico', 'log de todas as operações'],
     ['reiniciar', 'zera a carteira com novo capital (--capital 10000)'],
-    ['ajuda', 'mostra esta ajuda'],
   ];
   for (const [cmd, desc] of cmds) {
+    console.log(`  ${amarelo(pad(cmd, 26))} ${cinza(desc)}`);
+  }
+  console.log(`\n${cianoNegrito('🔥 ORDENS REAIS (dinheiro de verdade)')}`);
+  const reais = [
+    ['corretoras', '💱 corretoras suportadas (Binance, Bybit, OKX) e como configurar'],
+    ['real preco <MOEDA>', 'preço real agora · ex: real preco BTC -c bybit'],
+    ['real saldo', 'seus saldos reais · ex: real saldo -c binance'],
+    ['real comprar <MOEDA> <US$>', 'ordem REAL a mercado · ex: real comprar BTC 25 --prever'],
+    ['real vender <MOEDA> <QTD|tudo>', 'ordem REAL a mercado · ex: real vender PEPE tudo --sim'],
+  ];
+  for (const [cmd, desc] of reais) {
+    console.log(`  ${vermelho(pad(cmd, 26))} ${cinza(desc)}`);
+  }
+  console.log(`\n${cianoNegrito('GERAIS')}`);
+  for (const [cmd, desc] of [['ajuda', 'mostra esta ajuda'], ['versao', 'mostra a versão']]) {
     console.log(`  ${amarelo(pad(cmd, 26))} ${cinza(desc)}`);
   }
   console.log(`\n${cianoNegrito('ESTRATÉGIAS DO ROBÔ')}`);
@@ -74,7 +90,7 @@ export function ajuda() {
     console.log(`  ${magenta(pad(`${chave} ${e.emoji}`, 26))} ${cinza(`${e.nome} — ${e.desc}`)}`);
   }
   console.log(`\n${cinza('Carteira salva em: ' + caminhoCarteira())}`);
-  console.log(`${cinza('⚠️  Simulação educacional de mercado — nada aqui é conselho financeiro.')}\n`);
+  console.log(`${cinza('⚠️  A simulação é educacional. Ordens reais movimentam dinheiro de verdade — cuidado.')}\n`);
 }
 
 // ── mercado ──────────────────────────────────────────────────────────────────
@@ -395,8 +411,7 @@ export async function comandoTeste(args) {
   }
 
   // fase 4: vende tudo
-  console.log(`
-${amareloNegrito('  ▸ FASE 4 · ENCERRANDO: VENDENDO TUDO AO PREÇO FINAL')}`);
+  console.log(`\n${amareloNegrito('  ▸ FASE 4 · ENCERRANDO: VENDENDO TUDO AO PREÇO FINAL')}`);
   const comprasPorMoeda = {};
   const realizadoParcial = {};
   for (const o of carteira.operacoes) {
@@ -464,7 +479,7 @@ export function comandoLetras(args) {
 // ── versão ───────────────────────────────────────────────────────────────────
 
 export function comandoVersao() {
-  console.log('coinmind v1.0.0');
+  console.log(`coinmind v${VERSAO}`);
 }
 
 // ── dispatcher ───────────────────────────────────────────────────────────────
@@ -480,6 +495,8 @@ const ALIASES = {
   letras: comandoLetras, ascii: comandoLetras,
   historico: comandoHistorico, history: comandoHistorico,
   reiniciar: comandoReiniciar, reset: comandoReiniciar,
+  corretoras: comandoCorretoras, exchanges: comandoCorretoras, corretora: comandoCorretoras,
+  real: comandoReal, live: comandoReal,
   versao: comandoVersao, '--version': comandoVersao, '-v': comandoVersao,
 };
 

@@ -1,14 +1,14 @@
 {
   "name": "coinmind",
-  "version": "1.0.0",
-  "description": "🧠 CoinMind — o robô de cripto que mora no seu terminal: mercado volátil de memes, blue chips e Web3, trading automático e veredito de LUCRO ou PERDA. Zero dependências.",
+  "version": "1.1.0",
+  "description": "🧠 CoinMind — o robô de cripto que mora no seu terminal: mercado volátil de memes, blue chips e Web3, trading automático, veredito de LUCRO ou PERDA e ORDENS REAIS via Binance, Bybit e OKX. Zero dependências.",
   "type": "module",
   "main": "src/comandos.js",
   "bin": {
     "coinmind": "bin/coinmind.js"
   },
   "engines": {
-    "node": ">=16.14"
+    "node": ">=18"
   },
   "scripts": {
     "start": "node bin/coinmind.js",
@@ -31,7 +31,12 @@
     "bitcoin",
     "dogecoin",
     "pepe",
-    "brasil"
+    "brasil",
+    "binance",
+    "bybit",
+    "okx",
+    "ordens-reais",
+    "exchange"
   ],
   "author": "Pedro21062014",
   "license": "MIT",

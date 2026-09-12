@@ -10,6 +10,11 @@ import { Mercado, RNG } from '../src/mercado.js';
 import { novaCarteira, comprar, vender, valorTotal, pnlRealizado } from '../src/carteira.js';
 import { decidir, executar, configEstrategia } from '../src/bot.js';
 import { sparkline, fmtPct, largVisivel, pad } from '../src/ui.js';
+import { hmacHex, hmacBase64, arredondarParaPasso } from '../src/corretoras/util.js';
+import binance from '../src/corretoras/binance.js';
+import bybit from '../src/corretoras/bybit.js';
+import okx from '../src/corretoras/okx.js';
+import { configurada, credenciais, CORRETORAS } from '../src/corretoras/index.js';
 
 // ── letras ───────────────────────────────────────────────────────────────────
 
@@ -140,4 +145,44 @@ test('ui: sparkline só usa blocos válidos e fmtPct usa vírgula', () => {
   assert.ok(/^[▁▂▃▄▅▆▇█]+$/.test(s));
   assert.equal(fmtPct(12.345), '+12,35%');
   assert.equal(fmtPct(-1), '-1,00%');
+});
+
+// ── corretoras ───────────────────────────────────────────────────────────────
+
+test('corretoras: hmac-sha256 bate com o vetor conhecido', () => {
+  assert.equal(
+    hmacHex('key', 'The quick brown fox jumps over the lazy dog'),
+    'f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8'
+  );
+  assert.ok(hmacBase64('key', 'msg').length > 20);
+});
+
+test('corretoras: cada exchange monta o par do jeito dela', () => {
+  assert.equal(binance.par('btc'), 'BTCUSDT');
+  assert.equal(bybit.par('doge', 'USDT'), 'DOGEUSDT');
+  assert.equal(okx.par('pepe'), 'PEPE-USDT');
+});
+
+test('corretoras: arredondarParaPasso respeita o stepSize da corretora', () => {
+  assert.equal(arredondarParaPasso(1.23456789, '0.001'), '1.234');
+  assert.equal(arredondarParaPasso(0.0000123456, '0.00000001'), '0.00001234');
+  assert.equal(arredondarParaPasso(952.3704, '1'), '952');
+});
+
+test('corretoras: credenciais vêm de env e de arquivo', () => {
+  process.env.COINMIND_BINANCE_API_KEY = 'chave_teste_123';
+  process.env.COINMIND_BINANCE_API_SECRET = 'segredo_teste_456';
+  assert.ok(configurada('binance'));
+  assert.equal(credenciais('binance').apiKey, 'chave_teste_123');
+  delete process.env.COINMIND_BINANCE_API_KEY;
+  delete process.env.COINMIND_BINANCE_API_SECRET;
+  assert.equal(configurada('binance'), false);
+});
+
+test('corretoras: registro tem as 3 corretoras e ids únicos', () => {
+  const ids = Object.keys(CORRETORAS);
+  assert.deepEqual(ids.sort(), ['binance', 'bybit', 'okx']);
+  for (const mod of Object.values(CORRETORAS)) {
+    assert.ok(mod.nome && mod.env?.apiKey && typeof mod.preco === 'function' && typeof mod.criarOrdem === 'function');
+  }
 });
