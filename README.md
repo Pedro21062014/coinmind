@@ -14,7 +14,7 @@
 Simulador de mercado com moedas memes, blue chips e Web3 — preços que sobem e caem,
 estratégias de trading automático e um veredito honesto: **LUCRO** ou **PERDA**.
 
-**Novo na v1.1:** 🔥 ordens **REAIS** a mercado via **Binance**, **Bybit** e **OKX**.
+**v1.2:** ⚙️ configuração 100% pela CLI · 🔥 ordens REAIS via **Binance**, **Bybit** e **OKX** com modo **testnet/real**.
 
 `zero dependências` · `Node 18+` · `100% terminal`
 
@@ -24,114 +24,133 @@ estratégias de trading automático e um veredito honesto: **LUCRO** ou **PERDA*
 
 ## ⚠️ Aviso
 
-Isto é um **simulador / paper trading educacional**. Os preços são gerados por um
-motor de mercado local (random walk geométrico + eventos de choque). Nada aqui é
-conselho financeiro e nenhum dinheiro real é movimentado.
+O mercado simulado é **educacional** (preços gerados localmente). As ordens reais
+(`coinmind real ...`) movimentam **dinheiro de verdade** na corretora escolhida —
+use com moderação. Nada aqui é conselho financeiro.
 
 ## 📦 Instalação
 
 ```bash
-npm install -g coinmind
-```
-
-Ou rode direto sem instalar:
-
-```bash
-npx coinmind teste
+npm install -g coinmind     # ou use: npx coinmind
 ```
 
 ## 🚀 Uso rápido
 
 ```bash
-coinmind                 # banner + ajuda
-coinmind mercado         # cotações do mercado simulado
-coinmind mercado --ciclos 10 --intervalo 600   # assiste ao vivo por 10 ciclos
+coinmind                    # banner + ajuda
+coinmind mercado            # cotações do mercado simulado
+coinmind mercado --ciclos 10 --intervalo 600
 
-coinmind comprar PEPE 100     # gasta US$ 100 em PEPE
-coinmind vender PEPE tudo     # vende toda a posição
-coinmind carteira             # posições, saldo e lucro/prejuízo
-coinmind historico            # log de operações
+coinmind comprar PEPE 100   # simulação: gasta US$ 100 fictícios
+coinmind vender PEPE tudo
+coinmind carteira           # posições, saldo e lucro/prejuízo
 
-coinmind letras HODL          # gera letras gigantes estilo ANSI Shadow
+coinmind teste              # 🧪 teste real completo: LUCRO ou PERDA
+coinmind letras HODL        # letras gigantes estilo ANSI Shadow
 ```
 
-## 🤖 Modo robô (trading automático)
+## ⚙️ Configuração direto na CLI (v1.2)
+
+Sem `export`, sem editar JSON — o assistente pergunta tudo:
 
 ```bash
-coinmind rodar --estrategia dip --ciclos 40 --lote 150
+coinmind config
+```
+
+O assistente conduz: **corretora → chaves da API → modo (testnet/real) → estratégia**
+e já testa a conexão no final. Ou passo a passo:
+
+```bash
+coinmind config chaves --corretora binance --api-key SUA_KEY --secret SEU_SECRET
+coinmind config modo --testnet      # dinheiro de mentira (padrão, seguro)
+coinmind config modo --real         # dinheiro de verdade 🔥
+coinmind config estrategia dip --lote 120 --queda 5 --lucro 6 --stop 8
+coinmind config mostrar             # vê tudo que está salvo
+coinmind config apagar binance      # remove as chaves
+```
+
+Configurou uma vez, vale pra sempre — corretora, chaves, modo e estratégia
+ficam salvos em `~/.coinmind/config.json` e todos os comandos usam sozinhos.
+
+> Se preferir, também funcionam as variáveis de ambiente
+> (`COINMIND_BINANCE_API_KEY`, `COINMIND_BYBIT_API_KEY`, `COINMIND_OKX_API_KEY`...).
+
+## 🤖 Modo robô (usa a estratégia que você salvou)
+
+```bash
+coinmind rodar                          # usa a estratégia do coinmind config
+coinmind rodar --estrategia dip --queda 7 --lucro 8    # ajusta na hora (em %)
 coinmind rodar --estrategia momentum --ciclos 60 --capital 2000
-coinmind rodar --estrategia dca --ciclos 50
+coinmind rodar --estrategia dca --cada 5 --moedas BTC,DOGE
 ```
 
-| Estratégia | Emoji | Como funciona |
-|---|---|---|
-| `dip` | 🎣 | Compra quando a moeda cai X% da máxima recente; vende no lucro-alvo (+6%) ou stop-loss (−8%) |
-| `momentum` | 🏃 | Compra no cruzamento de médias (tendência de alta), vende na reversão |
-| `dca` | 🕰️ | Compra valor fixo a cada N ciclos, sem olhar preço |
+| Estratégia | Emoji | Como funciona | Parâmetros |
+|---|---|---|---|
+| `dip` | 🎣 | Compra quando a moeda cai X% da máxima; vende no lucro-alvo ou stop-loss | `--lote --queda --lucro --stop` |
+| `momentum` | 🏃 | Compra no cruzamento de médias (alta), vende na reversão | `--lote --curta --longa` |
+| `dca` | 🕰️ | Compra valor fixo a cada N ciclos, sem olhar preço | `--lote --cada --moedas` |
 
-## 🧪 O teste real
-
-Quer ver o robô provar na prática se dá lucro ou perda?
+## 🔥 Ordens REAIS — Binance, Bybit e OKX
 
 ```bash
-coinmind teste
+coinmind corretoras                        # painel: o que está configurado
+coinmind real preco BTC                    # preço real agora (público)
+coinmind real saldo                        # seus saldos na corretora salva
+coinmind real comprar BTC 25 --prever      # 👁️ mostra a ordem SEM enviar nada
+coinmind real comprar BTC 25 --sim         # 🔥 ordem REAL a mercado
+coinmind real vender PEPE tudo             # 🔥 vende TODA a PEPE real
 ```
 
-O comando monta uma carteira de **US$ 1.000** com moedas de exemplo
-(BTC, ETH, SOL, LINK, DOGE, PEPE), aquece o mercado, deixa o robô operar 60 ciclos,
-vende tudo e te entrega o veredito:
+- O **modo** (testnet/real) é o que você salvou em `coinmind config modo`;
+  sobrescreva pontualmente com `--real` ou `--testnet`.
+- `-c bybit` troca a corretora numa execução só.
+- Ordem a mercado usa `quoteOrderQty` (compra por valor em USDT) e respeita
+  `stepSize`/`minNotional` de cada par; o preenchimento é consultado logo depois.
 
-```
- ▸ RESULTADO POR MOEDA
- MOEDA   INVESTIDO      VALOR FINAL    LUCRO/PERDA
- 🟠 BTC  US$ 250,00     US$ 261,42     US$ +11,42 (+4,57%)
- 🐸 PEPE US$ 100,00     US$ 63,17      US$ -36,83 (-36,83%)  <- um rug, clássico
- ...
-  US$ 84,12 DE LUCRO (+8,41%)  🎉🚀💰
+### 🛟 Segurança em camadas
+
+| Camada | O que faz |
+|---|---|
+| Padrão testnet | sem config explícita de modo real, nada real acontece |
+| Comando separado (`real`) | impossível confundir com a simulação |
+| `--prever` | dry-run: mostra exatamente a ordem, não envia nada |
+| Confirmação digitada | sem `--sim`, você precisa digitar `SIM` no terminal |
+| Chave só-trade | crie a chave **sem permissão de saque** e com IP restrito |
+| Segredos ocultos | na tela só aparece `••••últimos4` |
+
+## 🧪 O teste real (simulado)
+
+```bash
+coinmind teste [--semente 42]
 ```
 
-Rodadas são aleatórias (como a vida). Use `--semente 42` para uma rodada reproduzível.
+Monta carteira de US$ 1.000 (BTC, ETH, SOL, LINK, DOGE, PEPE), o robô opera 60
+ciclos no mercado volátil, vende tudo e entrega o veredito **LUCRO** ou **PERDA**
+com tabela por moeda, eventos do mercado e curva do patrimônio.
 
 ## 🐸 O mercado simulado
 
 | Categoria | Moedas | Volatilidade | Eventos |
 |---|---|---|---|
-| 🔵 Blue Chip | BTC, ETH, SOL, BNB, XRP | baixa | decisões do Fed, ETFs, macro |
+| 🔵 Blue Chip | BTC, ETH, SOL, BNB, XRP | baixa | Fed, ETFs, macro |
 | 🐸 Meme | DOGE, SHIB, PEPE, BONK, FLOKI, WIF | insana | tweets do Elon, rug pulls, listagens |
 | 🌐 Web3 | LINK, UNI, AAVE, ARB, OP, TIA | alta | airdrops, unlocks, exploits |
-
-Cada tick aplica um random walk geométrico por moeda, com chance de evento de
-choque que multiplica o preço na hora. A carteira fica salva em `~/.coinmind/carteira.json`.
 
 ## 🛠️ Desenvolvimento
 
 ```bash
 git clone https://github.com/Pedro21062014/coinmind.git
 cd coinmind
-npm test          # testes automatizados (node:test, zero deps)
+npm test          # 21 testes (node:test, zero deps)
 npm start         # roda a CLI local
 ```
 
-Publicar uma versão nova:
+Publicar versão nova (o workflow usa o segredo `NPM_TOKEN`):
 
 ```bash
-npm version patch   # 1.0.0 → 1.0.1 (major/minor também funcionam)
+npm version patch   # ou minor/major
 git push --follow-tags
 ```
-
-O workflow **Publicar no NPM** (`.github/workflows/publicar.yml`) roda os testes
-e publica sozinho usando o segredo `NPM_TOKEN` — sem `npm login` na máquina.
-
-### 🔑 Configurar o NPM_TOKEN (uma vez só)
-
-1. Gere um *Access Token* no npm: [npmjs.com → Access Tokens](https://www.npmjs.com/settings/~/tokens) → **Generate New Token** → tipo **Automation**
-2. No GitHub do repo: **Settings → Secrets and variables → Actions → New repository secret**
-   - Name: `NPM_TOKEN`
-   - Secret: cole o token
-3. Pronto! A publicação acontece por tag (`v*`) ou pelo botão **Run workflow** na aba Actions.
-
-O workflow também roda `npm test` antes de publicar e avisa se você esqueceu de
-dar bump na versão.
 
 ## 📄 Licença
 

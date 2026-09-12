@@ -1,7 +1,7 @@
 {
   "name": "coinmind",
-  "version": "1.1.0",
-  "description": "🧠 CoinMind — o robô de cripto que mora no seu terminal: mercado volátil de memes, blue chips e Web3, trading automático, veredito de LUCRO ou PERDA e ORDENS REAIS via Binance, Bybit e OKX. Zero dependências.",
+  "version": "1.2.0",
+  "description": "🧠 CoinMind — o robô de cripto do terminal: mercado volátil de memes e Web3, estratégia configurável pela CLI, ordens REAIS via Binance, Bybit e OKX com modo testnet/real. Zero dependências.",
   "type": "module",
   "main": "src/comandos.js",
   "bin": {

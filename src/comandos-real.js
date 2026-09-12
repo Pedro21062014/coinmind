@@ -1,21 +1,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  coinmind · ORDENS REAIS 🔥 — comandos que falam com corretoras de verdade
+//  O MODO (testnet/real) vem do "coinmind config modo" e pode ser sobrescrito
+//  na execução com --real ou --testnet.
 //  Segurança em camadas:
 //    · comando separado sob "real" (impossível confundir com simulação)
 //    · --prever mostra a ordem sem enviar nada
 //    · sem --sim, pede confirmação digitada (SIM) no terminal
+//    · padrão é testnet — modo real só se você configurou explicitamente
 //    · segredos nunca aparecem na tela (só ••••últimos4)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import {
-  banner, titulo, tabela, negrito, apagado, vermelho, verde, amarelo, magenta,
-  ciano, cinza, verdeNegrito, vermelhoNegrito, cianoNegrito, fmtUSD, fmtQtd,
-  fmtPreco, fmtPct, corResultado,
+  banner, titulo, tabela, negrito, apagado, vermelho, verde, amarelo,
+  cianoNegrito, cinza, verdeNegrito, vermelhoNegrito, amareloNegrito,
+  fmtUSD, fmtQtd, fmtPreco, corResultado,
 } from './ui.js';
-import { CORRETORAS, configurada, contexto, credenciais } from './corretoras/index.js';
+import { CORRETORAS, configurada, contexto } from './corretoras/index.js';
 import { mascara } from './corretoras/util.js';
+import { lerConfig } from './config.js';
 
 function parseFlags(args) {
   const opts = {};
@@ -34,9 +38,15 @@ function parseFlags(args) {
   return { opts, resto };
 }
 
-function avisoReal() {
-  console.log(`\n  ${vermelhoNegrito('⚠️  MODO REAL — ISSO É DINHEIRO DE VERDADE')} ${vermelho('⚠️')}`);
-  console.log(`  ${vermelho('Memecoins são voláteis DEMAIS. Revise a ordem. Nada aqui é conselho financeiro.')}\n`);
+function avisoModo(modo) {
+  if (modo === 'real') {
+    console.log(`\n  ${vermelhoNegrito('⚠️  MODO REAL — ISSO É DINHEIRO DE VERDADE')} ${vermelho('(configurado com coinmind config modo --real)')}`);
+    console.log(`  ${vermelho('Memecoins são voláteis DEMAIS. Revise a ordem. Nada aqui é conselho financeiro.')}`);
+  } else {
+    console.log(`\n  ${amareloNegrito('🧪 MODO TESTNET — dinheiro de MENTIRA, pode errar à vontade.')}`);
+    console.log(`  ${cinza('Pra operar com dinheiro de verdade: coinmind config modo --real')}`);
+  }
+  console.log();
 }
 
 async function confirmar(opts, resumo) {
@@ -61,33 +71,31 @@ async function confirmar(opts, resumo) {
 // ── coinmind corretoras ──────────────────────────────────────────────────────
 
 export async function comandoCorretoras() {
+  const c = lerConfig();
   console.log(banner());
   console.log(titulo('corretoras de verdade suportadas'));
-  const linhas = Object.values(CORRETORAS).map((c) => [
-    `${negrito(c.nome)}`,
-    configurada(c.id) ? verde('✓ configurada') : cinza('não configurada'),
-    cinza(c.env.apiKey),
-    c.precisaPassphrase ? cinza(c.env.passphrase) : apagado('—'),
-  ]);
-  console.log(tabela(['CORRETORA', 'STATUS', 'VARIÁVEIS DE AMBIENTE', 'EXTRA'], linhas));
+  const linhas = Object.values(CORRETORAS).map((mod) => {
+    const ch = c.chaves?.[mod.id];
+    return [
+      `${negrito(mod.nome)}${c.corretora === mod.id ? verde(' ← padrão') : ''}`,
+      ch ? verde(`✓ chaves salvas`) : configurada(mod.id) ? amarelo('✓ via ambiente') : cinza('não configurada'),
+      cinza(`config chaves --corretora ${mod.id}`),
+    ];
+  });
+  console.log(tabela(['CORRETORA', 'STATUS', 'COMO CONFIGURAR'], linhas));
+
+  const modo = c.modo || 'testnet';
+  console.log(`\n  ${negrito('Modo atual:')} ${modo === 'real' ? vermelhoNegrito('REAL 🔥 (dinheiro de verdade)') : amareloNegrito('TESTNET 🧪 (dinheiro de mentira)')}`);
+  console.log(`  ${cinza(`trocar com: coinmind config modo --${modo === 'real' ? 'testnet' : 'real'}`)}`);
 
   console.log(`
-  ${cianoNegrito('Como configurar (escolha 1 das 2 formas)')}
+  ${cianoNegrito('Comece em 30 segundos')}
 
-  ${negrito('1. Variáveis de ambiente:')}
-    ${cinza('export COINMIND_BINANCE_API_KEY=sua_chave')}
-    ${cinza('export COINMIND_BINANCE_API_SECRET=seu_segredo')}
-    ${cinza('export COINMIND_OKX_PASSPHRASE=...   # só a OKX pede passphrase')}
+    ${negrito('coinmind config')}
+    ${cinza('↑ assistente interativo pergunta: corretora, chaves, modo e estratégia')}
 
-  ${negrito('2. Arquivo ~/.coinmind/corretoras.json:')}
-${cinza(`    {
-      "binance": { "apiKey": "...", "secret": "..." },
-      "bybit":   { "apiKey": "...", "secret": "..." },
-      "okx":     { "apiKey": "...", "secret": "...", "passphrase": "..." }
-    }`)}
-
-  ${negrito('Corretora padrão:')} ${cinza('env COINMIND_CORRETORA=binance  ou  a primeira configurada')}
-  ${negrito('Testnet (dinheiro de mentira):')} ${cinza('adicione --testnet ao comando')}
+    ${negrito('coinmind real comprar DOGE 10')}
+    ${cinza('↑ envia a ordem usando o que você configurou (use --prever pra ensaio)')}
 
   ${amarelo('🔒 Dicas de segurança:')}
     ${cinza('· crie a chave SÓ com permissão de "Spot Trading" (nunca saque)')}
@@ -100,7 +108,7 @@ ${cinza(`    {
 
 function linhaOrdem(ctx, o) {
   return [
-    `  ${cinza('corretora')}  ${negrito(ctx.mod.nome)}${ctx.cfg.testnet ? amarelo(' · TESTNET (dinheiro de mentira)') : vermelho(' · PRODUÇÃO')}`,
+    `  ${cinza('corretora')}  ${negrito(ctx.mod.nome)}${ctx.modo === 'testnet' ? amarelo(' · TESTNET (dinheiro de mentira)') : vermelho(' · PRODUÇÃO (dinheiro de verdade)')}`,
     `  ${cinza('chave')}      ${cinza(mascara(ctx.cfg.apiKey))}`,
     `  ${cinza('par')}        ${negrito(ctx.mod.par(o.simbolo, o.quote))}`,
     `  ${cinza('tipo')}       ${negrito('ordem a MERCADO')}`,
@@ -114,7 +122,6 @@ async function executarERelatar(ctx, o) {
   const r = await ctx.mod.criarOrdem(ctx.cfg, o);
   console.log(`\n  ${verdeNegrito(`📨 ORDEM ${o.lado.toUpperCase()} ENVIADA`)}  ${cinza(`id ${r.idOrdem}`)}`);
   console.log(`  ${cinza('status inicial:')} ${r.status}`);
-  // ordem a mercado costuma encher na hora — consulta o preenchimento
   await new Promise((res) => setTimeout(res, 1200));
   try {
     const d = await ctx.mod.consultarOrdem(ctx.cfg, r.par, r.idOrdem);
@@ -136,15 +143,17 @@ export async function comandoReal(args) {
 
   if (!sub || ['ajuda', 'help'].includes(sub)) {
     console.log(banner());
+    const modo = lerConfig().modo || 'testnet';
     console.log(cianoNegrito('USO: coinmind real <subcomando> [opções]\n'));
+    console.log(`  ${cinza('modo atual: ')}${modo === 'real' ? vermelhoNegrito('REAL 🔥') : amareloNegrito('TESTNET 🧪')} ${cinza('· mude com: coinmind config modo --real|--testnet  (ou --real/--testnet no comando)')}\n`);
     const cmds = [
-      ['real preco <MOEDA>', 'preço real agora · ex: real preco BTC -c bybit'],
+      ['real preco <MOEDA>', 'preço real agora · ex: real preco BTC'],
       ['real saldo', 'seus saldos reais na corretora'],
-      ['real comprar <MOEDA> <US$>', 'ordem REAL a mercado · ex: real comprar BTC 25'],
+      ['real comprar <MOEDA> <US$>', 'ordem REAL a mercado · ex: real comprar BTC 25 --prever'],
       ['real vender <MOEDA> <QTD|tudo>', 'ordem REAL a mercado · ex: real vender PEPE tudo'],
     ];
     for (const [c, d] of cmds) console.log(`  ${amarelo(c.padEnd(34))} ${cinza(d)}`);
-    console.log(`\n  ${cinza('opções: -c/--corretora binance|bybit|okx · --quote USDT · --testnet')}`);
+    console.log(`\n  ${cinza('opções: -c/--corretora binance|bybit|okx · --quote USDT · --real · --testnet')}`);
     console.log(`  ${cinza('       --prever (só mostra a ordem) · --sim (envia sem perguntar)')}\n`);
     return;
   }
@@ -152,7 +161,7 @@ export async function comandoReal(args) {
   const quote = String(opts.quote || 'USDT').toUpperCase();
   const ctx = contexto({
     corretora: opts.corretora,
-    testnet: !!opts.testnet,
+    modo: opts.real ? 'real' : opts.testnet ? 'testnet' : undefined,
     precoPublico: sub === 'preco',
     permitirSemCredenciais: !!opts.prever,
   });
@@ -162,21 +171,20 @@ export async function comandoReal(args) {
     const simbolo = String(resto[0] || '').toUpperCase();
     if (!simbolo) throw new Error('Uso: coinmind real preco <MOEDA>   ex: coinmind real preco BTC -c bybit');
     const preco = await ctx.mod.preco(ctx.cfg, simbolo, quote);
-    console.log(`\n  ${negrito(ctx.mod.nome)} · ${negrito(simbolo)} em ${quote}: ${verdeNegrito(fmtPreco(preco))}${ctx.cfg.testnet ? amarelo(' (testnet)') : ''}\n`);
+    console.log(`\n  ${negrito(ctx.mod.nome)} · ${negrito(simbolo)} em ${quote}: ${verdeNegrito(fmtPreco(preco))}${ctx.modo === 'testnet' ? amarelo(' (testnet)') : ''}\n`);
     return;
   }
 
   // ── saldo
   if (sub === 'saldo') {
-    avisoReal();
+    avisoModo(ctx.modo);
     const saldos = await ctx.mod.saldo(ctx.cfg);
     if (!saldos.length) {
       console.log(`  ${cinza('Nenhum saldo livre na ' + ctx.mod.nome + '.')}\n`);
       return;
     }
-    console.log(`  ${negrito(`💰 Saldos na ${ctx.mod.nome}`)}${ctx.cfg.testnet ? amarelo(' (TESTNET)') : ''} ${cinza(`· chave ${mascara(ctx.cfg.apiKey)}`)}\n`);
-    const linhas = saldos.map((s) => [s.ativo, fmtQtd(s.livre)]);
-    console.log(tabela(['ATIVO', 'DISPONÍVEL'], linhas));
+    console.log(`  ${negrito(`💰 Saldos na ${ctx.mod.nome}`)}${ctx.modo === 'testnet' ? amarelo(' (TESTNET)') : vermelho(' (PRODUÇÃO)')} ${cinza(`· chave ${mascara(ctx.cfg.apiKey)}`)}\n`);
+    console.log(tabela(['ATIVO', 'DISPONÍVEL'], saldos.map((s) => [s.ativo, fmtQtd(s.livre)])));
     console.log();
     return;
   }
@@ -186,9 +194,9 @@ export async function comandoReal(args) {
     const simbolo = String(resto[0] || '').toUpperCase();
     const usd = Number(String(resto[1] || '').replace(',', '.'));
     if (!simbolo || !isFinite(usd) || usd <= 0) {
-      throw new Error('Uso: coinmind real comprar <MOEDA> <US$>   ex: coinmind real comprar BTC 25 -c binance');
+      throw new Error('Uso: coinmind real comprar <MOEDA> <US$>   ex: coinmind real comprar BTC 25');
     }
-    avisoReal();
+    avisoModo(ctx.modo);
     const o = { lado: 'compra', simbolo, quote, usd };
     console.log(`  ${titulo('ordem a ser enviada').trim()}`);
     console.log(linhaOrdem(ctx, o));
@@ -202,9 +210,9 @@ export async function comandoReal(args) {
     const simbolo = String(resto[0] || '').toUpperCase();
     const quantos = resto[1];
     if (!simbolo || !quantos) {
-      throw new Error('Uso: coinmind real vender <MOEDA> <QTD|tudo>   ex: coinmind real vender PEPE tudo -c binance');
+      throw new Error('Uso: coinmind real vender <MOEDA> <QTD|tudo>   ex: coinmind real vender PEPE tudo');
     }
-    avisoReal();
+    avisoModo(ctx.modo);
     let qtd;
     if (['tudo', 'all', 'max'].includes(String(quantos).toLowerCase())) {
       console.log(`  ${cinza('buscando seu saldo de ' + simbolo + ' na ' + ctx.mod.nome + '...')}`);

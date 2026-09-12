@@ -16,6 +16,8 @@ import {
 } from './carteira.js';
 import { ESTRATEGIAS, decidir, executar, configEstrategia } from './bot.js';
 import { comandoCorretoras, comandoReal } from './comandos-real.js';
+import { comandoConfig } from './comandos-config.js';
+import { lerConfig, pctParaFrac } from './config.js';
 import { VERSAO } from './versao.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -80,6 +82,17 @@ export function ajuda() {
   ];
   for (const [cmd, desc] of reais) {
     console.log(`  ${vermelho(pad(cmd, 26))} ${cinza(desc)}`);
+  }
+  console.log(`\n${cianoNegrito('⚙️  CONFIGURAÇÃO (chaves, modo e estratégia — sem export, direto na CLI)')}`);
+  const cfgCmds = [
+    ['config', '⚡ assistente interativo: corretora, chaves, modo, estratégia'],
+    ['config chaves', 'salva chaves · --corretora binance --api-key K --secret S'],
+    ['config modo', 'testnet ou real · ex: config modo --real (padrão: testnet)'],
+    ['config estrategia', 'salva sua estratégia · ex: config estrategia dip --lote 120 --queda 5 --lucro 6 --stop 8'],
+    ['config mostrar', 'mostra tudo que está salvo'],
+  ];
+  for (const [cmd, desc] of cfgCmds) {
+    console.log(`  ${azul(pad(cmd, 26))} ${cinza(desc)}`);
   }
   console.log(`\n${cianoNegrito('GERAIS')}`);
   for (const [cmd, desc] of [['ajuda', 'mostra esta ajuda'], ['versao', 'mostra a versão']]) {
@@ -252,24 +265,34 @@ export function comandoReiniciar(args) {
 
 export async function comandoRodar(args) {
   const { opts } = parseFlags(args);
-  const estrategia = String(opts.estrategia || opts.estrategias || 'dip');
+  const salvo = lerConfig().estrategia || {};
+  const estrategia = String(opts.estrategia || opts.estrategias || salvo.nome || 'dip');
   if (!ESTRATEGIAS[estrategia]) {
     console.log(vermelho(`Estratégia inválida: "${estrategia}". Opções: ${Object.keys(ESTRATEGIAS).join(', ')}`));
     return;
   }
   const ciclos = num(opts.ciclos, 40);
   const intervalo = num(opts.intervalo, 200);
-  const lote = num(opts.lote, 150);
   const capital = opts.capital !== undefined ? num(opts.capital, null) : null;
 
   const carteira = capital !== null ? reiniciar(capital) : carregar();
   const mercado = new Mercado(new RNG(opts.semente ? num(opts.semente, 1) : undefined));
-  const cfg = configEstrategia(estrategia, { lote });
+  // prioridade: flags da CLI > estratégia salva no config > padrões
+  const cfg = configEstrategia(estrategia, salvo.nome === estrategia ? salvo.cfg : {});
+  if (opts.lote !== undefined) cfg.lote = num(opts.lote, cfg.lote);
+  if (opts.queda !== undefined) cfg.queda = pctParaFrac(num(opts.queda, cfg.queda));
+  if (opts.lucro !== undefined) cfg.lucroAlvo = pctParaFrac(num(opts.lucro, cfg.lucroAlvo));
+  if (opts.stop !== undefined) cfg.stopLoss = pctParaFrac(num(opts.stop, cfg.stopLoss));
+  if (opts.curta !== undefined) cfg.curta = num(opts.curta, cfg.curta);
+  if (opts.longa !== undefined) cfg.longa = num(opts.longa, cfg.longa);
+  if (opts.cada !== undefined) cfg.cadaNCiclos = num(opts.cada, cfg.cadaNCiclos);
+  if (opts.moedas) cfg.moedas = String(opts.moedas).split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const origem = opts.estrategia || opts.lote || opts.queda || opts.lucro || opts.stop ? 'ajustes da CLI' : salvo.nome === estrategia ? 'config salvo' : 'padrões';
   const eq = [];
 
   console.log(banner());
   console.log(`  ${negrito(`🤖 ${ESTRATEGIAS[estrategia].emoji} ${ESTRATEGIAS[estrategia].nome}`)} ${cinza('— ' + ESTRATEGIAS[estrategia].desc)}`);
-  console.log(`  ${cinza(`${ciclos} ciclos · ${intervalo}ms · lote de ${fmtUSD(lote)}`)}\n`);
+  console.log(`  ${cinza(`${ciclos} ciclos · ${intervalo}ms · lote de ${fmtUSD(cfg.lote)} · ${origem}`)}\n`);
 
   for (let i = 1; i <= ciclos; i++) {
     mercado.tick();
@@ -496,6 +519,8 @@ const ALIASES = {
   historico: comandoHistorico, history: comandoHistorico,
   reiniciar: comandoReiniciar, reset: comandoReiniciar,
   corretoras: comandoCorretoras, exchanges: comandoCorretoras, corretora: comandoCorretoras,
+  config: comandoConfig, configurar: comandoConfig, setup: comandoConfig,
+  estrategia: (...a) => comandoConfig(['estrategia', ...a]),
   real: comandoReal, live: comandoReal,
   versao: comandoVersao, '--version': comandoVersao, '-v': comandoVersao,
 };

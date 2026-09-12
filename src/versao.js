@@ -1,5 +1,1 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  coinmind · versão centralizada (importada pelo banner, ajuda e npm)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';

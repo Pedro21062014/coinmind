@@ -14,7 +14,8 @@ import { hmacHex, hmacBase64, arredondarParaPasso } from '../src/corretoras/util
 import binance from '../src/corretoras/binance.js';
 import bybit from '../src/corretoras/bybit.js';
 import okx from '../src/corretoras/okx.js';
-import { configurada, credenciais, CORRETORAS } from '../src/corretoras/index.js';
+import { configurada, credenciais, CORRETORAS, contexto } from '../src/corretoras/index.js';
+import { lerConfig, salvarConfig, apagarChaves, pctParaFrac } from '../src/config.js';
 
 // ── letras ───────────────────────────────────────────────────────────────────
 
@@ -185,4 +186,46 @@ test('corretoras: registro tem as 3 corretoras e ids únicos', () => {
   for (const mod of Object.values(CORRETORAS)) {
     assert.ok(mod.nome && mod.env?.apiKey && typeof mod.preco === 'function' && typeof mod.criarOrdem === 'function');
   }
+});
+
+// ── config CLI (v1.2) ────────────────────────────────────────────────────────
+
+test('config: salva, mescla chaves por corretora e apaga', () => {
+  const dir = '/tmp/cm-cfg-' + Date.now();
+  process.env.COINMIND_DIR = dir;
+  salvarConfig({ corretora: 'binance', modo: 'testnet', chaves: { binance: { apiKey: 'k1', secret: 's1' } } });
+  salvarConfig({ chaves: { okx: { apiKey: 'k2', secret: 's2', passphrase: 'p' } } }); // não pode apagar a binance
+  let c = lerConfig();
+  assert.equal(c.corretora, 'binance');
+  assert.equal(c.chaves.binance.apiKey, 'k1');
+  assert.equal(c.chaves.okx.passphrase, 'p');
+  apagarChaves('binance');
+  c = lerConfig();
+  assert.ok(!c.chaves.binance, 'binance deveria ter sido apagada');
+  assert.ok(c.chaves.okx, 'okx deveria continuar');
+  delete process.env.COINMIND_DIR;
+});
+
+test('contexto: usa corretora, modo e chaves do config (testnet por padrão)', () => {
+  const dir = '/tmp/cm-ctx-' + Date.now();
+  process.env.COINMIND_DIR = dir;
+  delete process.env.COINMIND_CORRETORA;
+  salvarConfig({ corretora: 'okx', modo: 'testnet', chaves: { okx: { apiKey: 'kk', secret: 'ss', passphrase: 'pp' } } });
+  const ctx = contexto({});
+  assert.equal(ctx.id, 'okx');
+  assert.equal(ctx.modo, 'testnet');
+  assert.equal(ctx.cfg.testnet, true);
+  assert.equal(ctx.cfg.apiKey, 'kk');
+  const real = contexto({ modo: 'real' });
+  assert.equal(real.modo, 'real');
+  assert.equal(real.cfg.testnet, false);
+  const flag = contexto({ real: true });
+  assert.equal(flag.modo, 'real');
+  delete process.env.COINMIND_DIR;
+});
+
+test('pctParaFrac: aceita 5 (=5%) e 0.05 (=5% também)', () => {
+  assert.equal(pctParaFrac(5), 0.05);
+  assert.equal(pctParaFrac(0.05), 0.05);
+  assert.equal(pctParaFrac(100), 1);
 });
