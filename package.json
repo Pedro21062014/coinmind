@@ -1,7 +1,7 @@
 {
   "name": "coinmind",
-  "version": "1.2.0",
-  "description": "🧠 CoinMind — o robô de cripto do terminal: mercado volátil de memes e Web3, estratégia configurável pela CLI, ordens REAIS via Binance, Bybit e OKX com modo testnet/real. Zero dependências.",
+  "version": "1.3.0",
+  "description": "🧠 CoinMind — o robô de cripto do terminal: mercado volátil, estratégias configuráveis pela CLI, ordens REAIS (Binance/Bybit/OKX), modo testnet/real e AGENTE 24H autônomo com cérebro de IA opcional. Zero dependências.",
   "type": "module",
   "main": "src/comandos.js",
   "bin": {
@@ -36,7 +36,13 @@
     "bybit",
     "okx",
     "ordens-reais",
-    "exchange"
+    "exchange",
+    "ai",
+    "agente",
+    "autonomous-agent",
+    "openai",
+    "trading-agent",
+    "24-7"
   ],
   "author": "Pedro21062014",
   "license": "MIT",

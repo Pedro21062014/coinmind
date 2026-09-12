@@ -17,6 +17,7 @@ import {
 import { ESTRATEGIAS, decidir, executar, configEstrategia } from './bot.js';
 import { comandoCorretoras, comandoReal } from './comandos-real.js';
 import { comandoConfig } from './comandos-config.js';
+import { comandoAgente } from './comandos-agente.js';
 import { lerConfig, pctParaFrac } from './config.js';
 import { VERSAO } from './versao.js';
 
@@ -92,6 +93,17 @@ export function ajuda() {
     ['config mostrar', 'mostra tudo que está salvo'],
   ];
   for (const [cmd, desc] of cfgCmds) {
+    console.log(`  ${azul(pad(cmd, 26))} ${cinza(desc)}`);
+  }
+  console.log(`\n${cianoNegrito('🤖 AGENTE 24H (trading autônomo — só roda se VOCÊ ligar)')}`);
+  const agCmds = [
+    ['agente', 'painel de status do robô autônomo'],
+    ['agente ligar', '🤖 liga o robô 24h com a estratégia e chaves salvas · --prever = modo sombra'],
+    ['agente desligar', '⏹ desliga de qualquer terminal'],
+    ['agente ia', '🧠 conecta um cérebro de IA (OpenAI/Groq/Ollama) que aprova ou veta cada compra'],
+    ['agente limites', '🛟 limites de risco · --max-ordem 25 --perda-dia 50 --moedas BTC,DOGE'],
+  ];
+  for (const [cmd, desc] of agCmds) {
     console.log(`  ${azul(pad(cmd, 26))} ${cinza(desc)}`);
   }
   console.log(`\n${cianoNegrito('GERAIS')}`);
@@ -520,6 +532,7 @@ const ALIASES = {
   reiniciar: comandoReiniciar, reset: comandoReiniciar,
   corretoras: comandoCorretoras, exchanges: comandoCorretoras, corretora: comandoCorretoras,
   config: comandoConfig, configurar: comandoConfig, setup: comandoConfig,
+  agente: comandoAgente, agent: comandoAgente, ia: (...a) => comandoAgente(['ia', ...a]),
   estrategia: (...a) => comandoConfig(['estrategia', ...a]),
   real: comandoReal, live: comandoReal,
   versao: comandoVersao, '--version': comandoVersao, '-v': comandoVersao,

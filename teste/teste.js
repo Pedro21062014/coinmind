@@ -16,6 +16,10 @@ import bybit from '../src/corretoras/bybit.js';
 import okx from '../src/corretoras/okx.js';
 import { configurada, credenciais, CORRETORAS, contexto } from '../src/corretoras/index.js';
 import { lerConfig, salvarConfig, apagarChaves, pctParaFrac } from '../src/config.js';
+import {
+  decidirTick, limiteBloqueia, interpretarRespostaIA, iaConfigurada,
+  estadoInicial, lerEstado, salvarEstado, pidVivo, LIMITES_PADRAO,
+} from '../src/agente.js';
 
 // ── letras ───────────────────────────────────────────────────────────────────
 
@@ -228,4 +232,58 @@ test('pctParaFrac: aceita 5 (=5%) e 0.05 (=5% também)', () => {
   assert.equal(pctParaFrac(5), 0.05);
   assert.equal(pctParaFrac(0.05), 0.05);
   assert.equal(pctParaFrac(100), 1);
+});
+
+// ── agente 24h (v1.3) ────────────────────────────────────────────────────────
+
+test('agente dip: decide compra na queda e venda no lucro/stop com séries reais', () => {
+  const serie = [100, 100, 100, 100, 100, 100, 94]; // queda de 6%
+  const cfg = { queda: 0.05, lucroAlvo: 0.06, stopLoss: 0.08, janela: 6 };
+  let propostas = decidirTick('dip', { DOGE: serie }, {}, cfg, 1);
+  assert.ok(propostas.some((p) => p.simbolo === 'DOGE' && p.acao === 'compra'), 'deveria comprar o dip');
+
+  const subiu = [...serie, 101]; // +7% sobre o preço médio 94
+  propostas = decidirTick('dip', { DOGE: subiu }, { DOGE: { qtd: 10, precoMedio: 94, investido: 940 } }, cfg, 2);
+  assert.ok(propostas.some((p) => p.simbolo === 'DOGE' && p.acao === 'venda' && p.tipo === 'saida'), 'deveria realizar lucro');
+
+  const caiu = [...serie, 85]; // -9.5%
+  propostas = decidirTick('dip', { DOGE: caiu }, { DOGE: { qtd: 10, precoMedio: 94, investido: 940 } }, cfg, 3);
+  assert.ok(propostas.some((p) => p.simbolo === 'DOGE' && p.acao === 'venda'), 'deveria dar stop');
+});
+
+test('agente: limites bloqueiam entrada mas NUNCA bloqueiam saída de proteção', () => {
+  const estado = { posicoes: { BTC: { qtd: 1, investido: 90, precoMedio: 90 } }, realizadoDia: 0, ultimoTradeEm: Date.now() };
+  const limites = { ...LIMITES_PADRAO, maxOrdem: 25, maxPosicao: 100, cooldown: 0, moedas: ['BTC', 'DOGE'] };
+  const compra = { simbolo: 'BTC', acao: 'compra', tipo: 'entrada' };
+  assert.ok(limiteBloqueia(compra, estado, limites, { lote: 25 }), 'teto de posição deveria bloquear');
+  const forasteira = { simbolo: 'PEPE', acao: 'compra', tipo: 'entrada' };
+  assert.ok(limiteBloqueia(forasteira, estado, limites, { lote: 25 }), 'moeda fora da lista deveria bloquear');
+  const venda = { simbolo: 'BTC', acao: 'venda', tipo: 'saida' };
+  assert.equal(limiteBloqueia(venda, estado, limites, { lote: 25 }), null, 'saída de proteção nunca é bloqueada');
+  const perda = { posicoes: {}, realizadoDia: -60, ultimoTradeEm: 0 };
+  assert.ok(limiteBloqueia(compra, perda, limites, { lote: 25 }), 'perda diária deveria bloquear');
+});
+
+test('agente: entende a resposta da IA (com ou sem blocos de código) e rejeita lixo', () => {
+  const boa = interpretarRespostaIA('```json\n{"decisao":"APROVAR","confianca":82,"motivo":"desconto bom"}\n```');
+  assert.equal(boa.decisao, 'APROVAR');
+  assert.equal(boa.confianca, 82);
+  const simples = interpretarRespostaIA('{"decisao":"REJEITAR","confianca":10,"motivo":"momentum ruim"}');
+  assert.equal(simples.decisao, 'REJEITAR');
+  assert.equal(interpretarRespostaIA('nunca vou falar json'), null);
+  assert.equal(interpretarRespostaIA('{"decisao":"TALVEZ"}'), null);
+  assert.equal(iaConfigurada(null), false);
+  assert.ok(iaConfigurada({ apiKey: 'k', baseUrl: 'u', modelo: 'm' }));
+});
+
+test('agente: estado persiste e pidVivo detecta processos', () => {
+  const dir = '/tmp/cm-ag-' + Date.now();
+  process.env.COINMIND_DIR = dir;
+  salvarEstado(estadoInicial({ corretora: 'okx', modo: 'testnet' }));
+  const e = lerEstado();
+  assert.equal(e.ligado, true);
+  assert.equal(e.corretora, 'okx');
+  assert.equal(pidVivo(e.pid), true, 'o próprio processo de teste está vivo');
+  assert.equal(pidVivo(999999999), false);
+  delete process.env.COINMIND_DIR;
 });

@@ -15,6 +15,7 @@ Simulador de mercado com moedas memes, blue chips e Web3 — preços que sobem e
 estratégias de trading automático e um veredito honesto: **LUCRO** ou **PERDA**.
 
 **v1.2:** ⚙️ configuração 100% pela CLI · 🔥 ordens REAIS via **Binance**, **Bybit** e **OKX** com modo **testnet/real**.
+**v1.3:** 🤖 AGENTE 24H autônomo com cérebro de IA opcional (OpenAI/Groq/Ollama) — só roda se você ligar.
 
 `zero dependências` · `Node 18+` · `100% terminal`
 
@@ -118,6 +119,50 @@ coinmind real vender PEPE tudo             # 🔥 vende TODA a PEPE real
 | Chave só-trade | crie a chave **sem permissão de saque** e com IP restrito |
 | Segredos ocultos | na tela só aparece `••••últimos4` |
 
+## 🤖 AGENTE 24H — trading autônomo com cérebro de IA (v1.3)
+
+Um robô que fica online **24 horas por dia** acompanhando preços reais da sua
+corretora e executando compras/vendas sozinho, com a estratégia que você
+configurou. **Ele NUNCA liga sozinho** — só se você mandar:
+
+```bash
+coinmind agente                    # painel de status (desligado por padrão)
+coinmind agente ligar              # LIGA (pede pra digitar LIGAR)
+coinmind agente ligar --prever     # 👁️ modo SOMBRA: decide mas não envia ordens
+coinmind agente desligar           # ⏹ desliga (funciona de outro terminal)
+nohup coinmind agente ligar --sim >> ~/.coinmind/agente.log 2>&1 &   # 24h de verdade
+```
+
+### 🧠 Cérebro de IA (opcional)
+
+Conecte um LLM que **aprova ou veta cada compra** do agente. Funciona com
+OpenAI, Groq, OpenRouter, Ollama local — qualquer endpoint OpenAI-compatível:
+
+```bash
+coinmind agente ia --api-key SUA_KEY                        # OpenAI (padrão)
+coinmind agente ia --api-key K --base-url https://api.groq.com/openai/v1 --modelo llama-3.3-70b-versatile
+```
+
+- A IA recebe o snapshot do mercado + a proposta e responde `APROVAR`/`REJEITAR` com motivo.
+- **Fail-safe:** se a IA errar/demorar/falar besteira, a ordem é **vetada**.
+- Stops e lucro-alvo são **sempre automáticos** — proteção nunca depende de IA.
+
+### 🛟 Limites de risco (o agente respeita à risca)
+
+```bash
+coinmind agente limites --max-ordem 25 --max-dia 100 --perda-dia 50 --cooldown 300 --moedas BTC,ETH,DOGE
+```
+
+| Limite | Padrão | Efeito |
+|---|---|---|
+| máximo por ordem | US$ 25 | nada maior que isso |
+| teto de posição total | US$ 100 | não acumula mais que isso |
+| **perda diária** | US$ 50 | perdeu isso no dia → **o agente SE DESLIGA sozinho** |
+| cooldown | 300s | pausa mínima entre trades |
+| moedas permitidas | BTC, ETH, SOL, DOGE | só opera na lista |
+
+Todo trade fica registrado no `~/.coinmind/agente.json` e aparece no `coinmind agente`.
+
 ## 🧪 O teste real (simulado)
 
 ```bash
@@ -141,7 +186,7 @@ com tabela por moeda, eventos do mercado e curva do patrimônio.
 ```bash
 git clone https://github.com/Pedro21062014/coinmind.git
 cd coinmind
-npm test          # 21 testes (node:test, zero deps)
+npm test          # 25 testes (node:test, zero deps)
 npm start         # roda a CLI local
 ```
 
