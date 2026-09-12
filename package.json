@@ -1,0 +1,53 @@
+{
+  "name": "coinmind",
+  "version": "1.0.0",
+  "description": "🧠 CoinMind — o robô de cripto que mora no seu terminal: mercado volátil de memes, blue chips e Web3, trading automático e veredito de LUCRO ou PERDA. Zero dependências.",
+  "type": "module",
+  "main": "src/comandos.js",
+  "bin": {
+    "coinmind": "bin/coinmind.js"
+  },
+  "engines": {
+    "node": ">=16.14"
+  },
+  "scripts": {
+    "start": "node bin/coinmind.js",
+    "test": "node teste/teste.js"
+  },
+  "keywords": [
+    "coinmind",
+    "cripto",
+    "crypto",
+    "bot",
+    "trading-bot",
+    "meme-coins",
+    "memecoins",
+    "web3",
+    "defi",
+    "cli",
+    "terminal",
+    "simulador",
+    "paper-trading",
+    "bitcoin",
+    "dogecoin",
+    "pepe",
+    "brasil"
+  ],
+  "author": "Pedro21062014",
+  "license": "MIT",
+  "files": [
+    "bin/",
+    "src/",
+    "teste/",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pedro21062014/coinmind.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Pedro21062014/coinmind/issues"
+  },
+  "homepage": "https://github.com/Pedro21062014/coinmind#readme"
+}
