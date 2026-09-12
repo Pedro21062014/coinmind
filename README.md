@@ -113,9 +113,23 @@ npm start         # roda a CLI local
 Publicar uma versão nova:
 
 ```bash
-npm login
-npm publish
+npm version patch   # 1.0.0 → 1.0.1 (major/minor também funcionam)
+git push --follow-tags
 ```
+
+O workflow **Publicar no NPM** (`.github/workflows/publicar.yml`) roda os testes
+e publica sozinho usando o segredo `NPM_TOKEN` — sem `npm login` na máquina.
+
+### 🔑 Configurar o NPM_TOKEN (uma vez só)
+
+1. Gere um *Access Token* no npm: [npmjs.com → Access Tokens](https://www.npmjs.com/settings/~/tokens) → **Generate New Token** → tipo **Automation**
+2. No GitHub do repo: **Settings → Secrets and variables → Actions → New repository secret**
+   - Name: `NPM_TOKEN`
+   - Secret: cole o token
+3. Pronto! A publicação acontece por tag (`v*`) ou pelo botão **Run workflow** na aba Actions.
+
+O workflow também roda `npm test` antes de publicar e avisa se você esqueceu de
+dar bump na versão.
 
 ## 📄 Licença
 

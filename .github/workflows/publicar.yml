@@ -1,0 +1,53 @@
+name: Publicar no NPM
+
+# Publica o pacote no npm de duas formas:
+#   1. Manual: aba Actions → "Publicar no NPM" → Run workflow
+#   2. Por tag: git tag v1.0.1 && git push --tags   (ou npm version patch && git push --follow-tags)
+#
+# Requer o segredo NPM_TOKEN configurado em:
+#   Settings → Secrets and variables → Actions → New repository secret
+#   (token gerado em npmjs.com → Access Tokens → Generate New Token, tipo "Automation")
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # necessário para o npm provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Rodar testes
+        run: npm test
+
+      - name: Checar se a versão já foi publicada
+        run: |
+          NOME=$(node -p "require('./package.json').name")
+          VERSAO=$(node -p "require('./package.json').version")
+          if npm view "$NOME@$VERSAO" version >/dev/null 2>&1; then
+            echo "::error::A versão $VERSAO de $NOME já existe no NPM. Dê um bump antes: npm version patch"
+            exit 1
+          fi
+
+      - name: Publicar
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Confirmar publicação
+        run: |
+          NOME=$(node -p "require('./package.json').name")
+          VERSAO=$(node -p "require('./package.json').version")
+          echo "✅ $NOME@$VERSAO publicado com sucesso!"
+          echo "🔗 https://www.npmjs.com/package/$NOME"
